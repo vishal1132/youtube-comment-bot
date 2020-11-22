@@ -204,8 +204,8 @@ func main() {
 		}
 	}()
 	mux := http.NewServeMux()
-	mux.HandleFunc("/v1/comment", s.v2Handler)
-	mux.HandleFunc("/v2/comment", s.v1Handler)
+	mux.HandleFunc("/v1/comment", s.v1Handler)
+	mux.HandleFunc("/v2/comment", s.v2Handler)
 	port := os.Getenv("PORT")
 	http.ListenAndServe(fmt.Sprintf(":%v", port), mux)
 
