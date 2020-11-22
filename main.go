@@ -194,6 +194,7 @@ func (s *server) v2Handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	go s.makeComments(vidID, num)
+	fmt.Fprintf(w, "success")
 }
 
 func main() {
