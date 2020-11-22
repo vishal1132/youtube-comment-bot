@@ -17,18 +17,47 @@ import (
 	"github.com/rs/zerolog"
 )
 
+// RefreshToken is
+type RefreshToken struct {
+	AccessToken string `json:"access_token"`
+	ExpiresIn   string `json:"expires_in"`
+	Scope       string `json:"scope"`
+	TokenType   string `json:"token_type"`
+}
+
+// RefBody is
+type RefBody struct {
+	ClientID     string `json:"client_id"`
+	RefreshToken string `json:"refresh_token"`
+	ClientSecret string `json:"client_secret"`
+	GrantType    string `json:"grant_type"`
+}
+
+//Payload is the body of the request for comment request
 type Payload struct {
 	Vsnippet Vsnippet `json:"snippet"`
 }
+
+// Snippet is the
 type Snippet struct {
 	TextOriginal string `json:"textOriginal"`
 }
+
+// TopLevelComment is
 type TopLevelComment struct {
 	Snippet Snippet `json:"snippet"`
 }
+
+// Vsnippet is
 type Vsnippet struct {
 	VideoID         string          `json:"videoId"`
 	TopLevelComment TopLevelComment `json:"topLevelComment"`
+}
+
+// Request is the
+type Request struct {
+	VideoID     string `json:"videoId"`
+	NumComments int    `json:"num_comments"`
 }
 
 type server struct {
@@ -58,66 +87,95 @@ func (s *server) commentHandler(w http.ResponseWriter, r *http.Request) {
 	lg := s.logger.With().Str("", "").Logger()
 	// lg.Info().Msg(string(r.))
 	log.Println(*r)
-	var vid = Vsnippet{}
+	var vid = Request{}
 	body, err := ioutil.ReadAll(r.Body)
 	err = json.Unmarshal(body, &vid)
 	if err != nil {
 		lg.Error().Err(err).Msg("failed to unmarshal request body")
 		return
 	}
-	var cmt string = s.getRandomComment()
-	if cmt == "" {
-		lg.Error().Msg("Unable to get comment")
-		return
-	}
-	vsnippet := Vsnippet{
-		VideoID:         vid.VideoID,
-		TopLevelComment: TopLevelComment{Snippet: Snippet{TextOriginal: cmt}},
-	}
-	data := Payload{
-		// fill struct
-		Vsnippet: vsnippet,
-	}
-	payloadBytes, err := json.Marshal(data)
-	if err != nil {
-		// handle err
-		lg.Error().Err(err).Msg("failed to marshal payload for comment")
-		return
-	}
-	newbody := bytes.NewReader(payloadBytes)
+	go func() {
+		for i := 0; i < vid.NumComments; i++ {
+			var cmt string = s.getRandomComment()
+			if cmt == "" {
+				lg.Error().Msg("Unable to get comment")
+				return
+			}
+			vsnippet := Vsnippet{
+				VideoID:         vid.VideoID,
+				TopLevelComment: TopLevelComment{Snippet: Snippet{TextOriginal: cmt}},
+			}
+			data := Payload{
+				// fill struct
+				Vsnippet: vsnippet,
+			}
+			payloadBytes, err := json.Marshal(data)
+			if err != nil {
+				// handle err
+				lg.Error().Err(err).Msg("failed to marshal payload for comment")
+				return
+			}
+			newbody := bytes.NewReader(payloadBytes)
 
-	req, err := http.NewRequest("POST", "https://youtube.googleapis.com/youtube/v3/commentThreads?part=snippet&key=AIzaSyDlt_ceDvJGRj6aVt7urPVHaaurEecQbnE", newbody)
-	if err != nil {
-		lg.Error().Err(err).Msg("error creating new http request")
-	}
-	btoken := fmt.Sprintf("Bearer %s", token)
-	req.Header.Set("Authorization", btoken)
-	req.Header.Set("Accept", "application/json")
-	req.Header.Set("Content-Type", "application/json")
+			req, err := http.NewRequest("POST", "https://youtube.googleapis.com/youtube/v3/commentThreads?part=snippet&key=AIzaSyDlt_ceDvJGRj6aVt7urPVHaaurEecQbnE", newbody)
+			if err != nil {
+				lg.Error().Err(err).Msg("error creating new http request")
+			}
+			btoken := fmt.Sprintf("Bearer %s", token)
+			req.Header.Set("Authorization", btoken)
+			req.Header.Set("Accept", "application/json")
+			req.Header.Set("Content-Type", "application/json")
 
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		// handle err
-		lg.Error().Err(err).Msg("failed to make http request")
-		return
-	}
-	defer resp.Body.Close()
-	res, err := ioutil.ReadAll(resp.Body)
-	log.Println(string(res))
-}
+			resp, err := http.DefaultClient.Do(req)
+			if err != nil {
+				// handle err
+				lg.Error().Err(err).Msg("failed to make http request")
+				return
+			}
+			defer resp.Body.Close()
+			res, err := ioutil.ReadAll(resp.Body)
+			log.Println(string(res))
+		}
+	}()
+	// var cmt string = s.getRandomComment()
+	// if cmt == "" {
+	// 	lg.Error().Msg("Unable to get comment")
+	// 	return
+	// }
+	// vsnippet := Vsnippet{
+	// 	VideoID:         vid.VideoID,
+	// 	TopLevelComment: TopLevelComment{Snippet: Snippet{TextOriginal: cmt}},
+	// }
+	// data := Payload{
+	// 	// fill struct
+	// 	Vsnippet: vsnippet,
+	// }
+	// payloadBytes, err := json.Marshal(data)
+	// if err != nil {
+	// 	// handle err
+	// 	lg.Error().Err(err).Msg("failed to marshal payload for comment")
+	// 	return
+	// }
+	// newbody := bytes.NewReader(payloadBytes)
 
-type RefreshToken struct {
-	AccessToken string `json:"access_token"`
-	ExpiresIn   string `json:"expires_in"`
-	Scope       string `json:"scope"`
-	TokenType   string `json:"token_type"`
-}
+	// req, err := http.NewRequest("POST", "https://youtube.googleapis.com/youtube/v3/commentThreads?part=snippet&key=AIzaSyDlt_ceDvJGRj6aVt7urPVHaaurEecQbnE", newbody)
+	// if err != nil {
+	// 	lg.Error().Err(err).Msg("error creating new http request")
+	// }
+	// btoken := fmt.Sprintf("Bearer %s", token)
+	// req.Header.Set("Authorization", btoken)
+	// req.Header.Set("Accept", "application/json")
+	// req.Header.Set("Content-Type", "application/json")
 
-type RefBody struct {
-	ClientID     string `json:"client_id"`
-	RefreshToken string `json:"refresh_token"`
-	ClientSecret string `json:"client_secret"`
-	GrantType    string `json:"grant_type"`
+	// resp, err := http.DefaultClient.Do(req)
+	// if err != nil {
+	// 	// handle err
+	// 	lg.Error().Err(err).Msg("failed to make http request")
+	// 	return
+	// }
+	// defer resp.Body.Close()
+	// res, err := ioutil.ReadAll(resp.Body)
+	// log.Println(string(res))
 }
 
 func (s *server) refreshToken(refbody RefBody) {
@@ -154,8 +212,9 @@ func (s *server) refreshToken(refbody RefBody) {
 	if err != nil {
 		lg.Error().Err(err).Msg("error unmarshaling refresh token response")
 	}
-	log.Printf("%+v", reftoken)
+	// log.Printf("%+v", reftoken)
 	token = reftoken.AccessToken
+	log.Println(reftoken.AccessToken)
 	time.Sleep(50 * time.Minute)
 }
 
@@ -174,8 +233,8 @@ func main() {
 	}()
 	mux := http.NewServeMux()
 	mux.HandleFunc("/comment", s.commentHandler)
-	port := os.Getenv("PORT")
-	http.ListenAndServe(fmt.Sprintf(":%v", port), mux)
-
+	// port := os.Getenv("PORT")
+	// http.ListenAndServe(fmt.Sprintf(":%v", port), mux)
+	http.ListenAndServe(":8080", mux)
 	// log.Println(resp.Body)
 }
