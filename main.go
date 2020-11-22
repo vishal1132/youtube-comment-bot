@@ -137,6 +137,7 @@ func (s *server) commentHandler(w http.ResponseWriter, r *http.Request) {
 			log.Println(string(res))
 		}
 	}()
+	fmt.Fprintf(w, "Success")
 	// var cmt string = s.getRandomComment()
 	// if cmt == "" {
 	// 	lg.Error().Msg("Unable to get comment")
@@ -233,8 +234,8 @@ func main() {
 	}()
 	mux := http.NewServeMux()
 	mux.HandleFunc("/comment", s.commentHandler)
-	// port := os.Getenv("PORT")
-	// http.ListenAndServe(fmt.Sprintf(":%v", port), mux)
-	http.ListenAndServe(":8080", mux)
+	port := os.Getenv("PORT")
+	http.ListenAndServe(fmt.Sprintf(":%v", port), mux)
+	// http.ListenAndServe(":8080", mux)
 	// log.Println(resp.Body)
 }
