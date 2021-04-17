@@ -211,5 +211,4 @@ func main() {
 	http.ListenAndServe(fmt.Sprintf(":%v", port), mux)
 
 	// http.ListenAndServe(":8080", mux)
-	// log.Println(resp.Body)
 }
